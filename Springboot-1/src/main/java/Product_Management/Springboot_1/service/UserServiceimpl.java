@@ -3,27 +3,24 @@ package Product_Management.Springboot_1.service;
 import Product_Management.Springboot_1.Exception.ResultNotFoundException;
 import Product_Management.Springboot_1.Repository.ProductRepository;
 import Product_Management.Springboot_1.Repository.UserRepository;
-import Product_Management.Springboot_1.Util.Emailutil;
-import Product_Management.Springboot_1.Util.OtpUtil;
-import Product_Management.Springboot_1.dto.LoginDto;
-import Product_Management.Springboot_1.dto.RegisterDto;
+import Product_Management.Springboot_1.dto.CategoryDto;
 import Product_Management.Springboot_1.dto.UserDto;
+import Product_Management.Springboot_1.entity.Category;
 import Product_Management.Springboot_1.entity.Product;
 import Product_Management.Springboot_1.entity.User;
+import Product_Management.Springboot_1.mapper.CategoryMapper;
 import Product_Management.Springboot_1.mapper.UserMapper;
-import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,13 +32,7 @@ public class UserServiceimpl implements UserService {
     @Autowired
     private ProductRepository productRepository;
 
-    @Autowired
-    private OtpUtil otpUtil;
-
-    @Autowired
-    private Emailutil emailUtil;
-
-
+    @Transactional
     @Override
     public UserDto createUser(UserDto userDto) {
         Set<Product> products = userDto.getProducts().stream()
@@ -67,7 +58,6 @@ public class UserServiceimpl implements UserService {
                 .orElseThrow(() -> new ResultNotFoundException("User with ID " + userId + " not found"));
         return UserMapper.mapToUserDto(user);
     }
-
 
 
     @Override
@@ -134,85 +124,4 @@ public class UserServiceimpl implements UserService {
         return UserMapper.mapToUserDto(user);
 
     }
-    public String register(RegisterDto registerDto) {
-        String otp = otpUtil.generateOtp();
-        try {
-            emailUtil.sendOtpEmail(registerDto.getEmail(), otp);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Unable to send otp please try again");
-        }
-        User user = new User();
-        user.setUsername(registerDto.getUsername());
-        user.setEmail(registerDto.getEmail());
-        user.setPassword(registerDto.getPassword());
-        user.setOtp(otp);
-        user.setOtpGeneratedTime(LocalDateTime.now());
-        userRepository.save(user);
-        return "User registration successful";
-    }
-
-    public String verifyAccount(String email, String otp) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with this email: " + email));
-        if (user.getOtp().equals(otp) && Duration.between(user.getOtpGeneratedTime(),
-                LocalDateTime.now()).getSeconds() < (1 * 60)) {
-            user.setActive(true);
-            userRepository.save(user);
-            return "OTP verified you can login";
-        }
-        return "Please regenerate otp and try again";
-    }
-
-    public String regenerateOtp(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with this email: " + email));
-        String otp = otpUtil.generateOtp();
-        try {
-            emailUtil.sendOtpEmail(email, otp);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Unable to send otp please try again");
-        }
-        user.setOtp(otp);
-        user.setOtpGeneratedTime(LocalDateTime.now());
-        userRepository.save(user);
-        return "Email sent... please verify account within 1 minute";
-    }
-
-    public String login(LoginDto loginDto) {
-        User user = userRepository.findByEmail(loginDto.getEmail())
-                .orElseThrow(
-                        () -> new RuntimeException("User not found with this email: " + loginDto.getEmail()));
-        if (!loginDto.getPassword().equals(user.getPassword())) {
-            return "Password is incorrect";
-        } else if (!user.isActive()) {
-            return "your account is not verified";
-        }
-        return "Login successful";
-    }
-
-    @Override
-    public String forgotPassword(String email) {
-       User user= userRepository.findByEmail(email)
-                .orElseThrow(
-                        () -> new RuntimeException("User not found with this email: " + email));
-        try {
-            emailUtil.sendSetPasswordEmail(email);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Unable to send password email please try again");
-        }
-
-        return "please check your email to set new password to your account";
-    }
-
-    @Override
-    public String setPassword(String email, String newPassword) {
-        User user= userRepository.findByEmail(email)
-                .orElseThrow(
-                        () -> new RuntimeException("User not found with this email: " + email));
-        user.setPassword(newPassword);
-        userRepository.save(user);
-        return "new password set successfully login with new password!!";
-
-    }
-
 }

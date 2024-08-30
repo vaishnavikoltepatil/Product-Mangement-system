@@ -1,6 +1,8 @@
 package Product_Management.Springboot_1.service;
 
-import Product_Management.Springboot_1.dto.*;
+import Product_Management.Springboot_1.dto.CategoryDto;
+import Product_Management.Springboot_1.dto.ProductDto;
+import Product_Management.Springboot_1.dto.UserDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -27,12 +29,4 @@ public interface UserService {
     Page<UserDto> findUserWithPaginationAndSorting(int offset, int pageSize, String field);
 
     UserDto getUserByName(String username);
-
-    String register(RegisterDto registerDto);
-    String verifyAccount(String email, String otp);
-    String regenerateOtp(String email);
-    String login(LoginDto loginDto);
-   String forgotPassword(String email);
-   String setPassword(String email,String newPassword);
-
 }

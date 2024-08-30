@@ -1,6 +1,7 @@
 package Product_Management.Springboot_1.Controller;
 
 import Product_Management.Springboot_1.dto.ProductDto;
+import Product_Management.Springboot_1.entity.Product;
 import Product_Management.Springboot_1.service.ProductService;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,6 @@ import org.springframework.hateoas.PagedModel;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +27,6 @@ public class ProductController {
 
     @Autowired
     private PagedResourcesAssembler<ProductDto> pagedResourcesAssembler;
-
 
     @PostMapping
     public ResponseEntity<ProductDto> createProduct(

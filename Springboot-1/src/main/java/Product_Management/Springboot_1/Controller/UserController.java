@@ -1,8 +1,6 @@
 package Product_Management.Springboot_1.Controller;
 
 
-import Product_Management.Springboot_1.dto.LoginDto;
-import Product_Management.Springboot_1.dto.RegisterDto;
 import Product_Management.Springboot_1.dto.UserDto;
 
 import Product_Management.Springboot_1.service.UserService;
@@ -31,7 +29,6 @@ public class UserController {
 
     @Autowired
     private PagedResourcesAssembler<UserDto> pagedResourcesAssembler;
-
 
     @PostMapping
     public ResponseEntity<UserDto> createUser(@RequestBody UserDto userDto) {
@@ -89,35 +86,5 @@ public class UserController {
         return ResponseEntity.ok(userDto);
     }
 
-
-    @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterDto registerDto) {
-        return new ResponseEntity<>(userService.register(registerDto), HttpStatus.OK);
-    }
-
-    @PutMapping("/verify-account")
-    public ResponseEntity<String> verifyAccount(@RequestParam String email,
-                                                @RequestParam String otp) {
-        return new ResponseEntity<>(userService.verifyAccount(email, otp), HttpStatus.OK);
-    }
-    @PutMapping("/regenerate-otp")
-    public ResponseEntity<String> regenerateOtp(@RequestParam String email) {
-        return new ResponseEntity<>(userService.regenerateOtp(email), HttpStatus.OK);
-    }
-    @PutMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginDto loginDto) {
-        return new ResponseEntity<>(userService.login(loginDto), HttpStatus.OK);
-    }
-
-    @PutMapping("/forgot-password")
-    public ResponseEntity<String>forgotPassword(@RequestParam String email){
-        return new ResponseEntity<>(userService.forgotPassword(email),HttpStatus.OK);
-    }
-
-    @PutMapping("/set-password")
-    public ResponseEntity<String>setPassword(@RequestParam String email,@RequestHeader String newPassword){
-
-        return new ResponseEntity<>(userService.setPassword(email,newPassword),HttpStatus.OK);
-    }
 
 }
