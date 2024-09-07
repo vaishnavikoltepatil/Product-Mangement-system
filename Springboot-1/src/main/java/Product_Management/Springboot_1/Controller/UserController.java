@@ -1,6 +1,7 @@
 package Product_Management.Springboot_1.Controller;
 
 
+import Product_Management.Springboot_1.Exception.*;
 import Product_Management.Springboot_1.dto.LoginDto;
 import Product_Management.Springboot_1.dto.RegisterDto;
 import Product_Management.Springboot_1.dto.UserDto;
@@ -16,9 +17,6 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import Product_Management.Springboot_1.Exception.EmailNotFoundException;
-import Product_Management.Springboot_1.Exception.InvalidEmailFormatException;
-import Product_Management.Springboot_1.Exception.UserAlreadyExistsException;
 
 import java.util.List;
 
@@ -132,32 +130,38 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<String> loginUser(@RequestBody LoginDto loginDto) {
         try {
-            userService.login(loginDto);
+            userService.login(loginDto);  // Attempt to log in
             return ResponseEntity.ok("Login successful.");
         } catch (EmailNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email not found.");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid login credentials.");
+        } catch (ResultNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Password does not match!!");
         }
     }
+
 
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestParam String email) {
         try {
-            userService.forgotPassword(email);
-            return ResponseEntity.ok("Password reset instructions sent to email.");
+            String message = userService.forgotPassword(email);
+            return ResponseEntity.ok(message);
         } catch (EmailNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email not found.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sending OTP, please try again.");
         }
     }
 
+
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestParam String email, @RequestParam String newPassword) {
+    public ResponseEntity<String> resetPassword(@RequestParam String email, @RequestParam String otp, @RequestParam String newPassword) {
         try {
-            userService.setPassword(email, newPassword);
+            userService.verifyOtpAndSetPassword(email, otp, newPassword);
             return ResponseEntity.ok("Password reset successfully.");
         } catch (EmailNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email not found.");
+        } catch (InvalidOtpException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP.");
         }
     }
 }

@@ -28,16 +28,17 @@ public interface UserService {
 
     UserDto getUserByName(String username);
 
-    String register(RegisterDto registerDto);
+    void register(RegisterDto registerDto);
 
-    String verifyAccount(String email, String otp);
+    void verifyAccount(String email, String otp);
 
-    String regenerateOtp(String email);
+    void regenerateOtp(String email);
 
-    String login(LoginDto loginDto);
+    void login(LoginDto loginDto);
 
    String forgotPassword(String email);
 
-   String setPassword(String email,String newPassword);
+    void verifyOtpAndSetPassword(String email, String otp, String newPassword);
+
 
 }

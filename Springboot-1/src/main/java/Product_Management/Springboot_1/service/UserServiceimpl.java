@@ -1,5 +1,7 @@
 package Product_Management.Springboot_1.service;
 
+import Product_Management.Springboot_1.Exception.EmailNotFoundException;
+import Product_Management.Springboot_1.Exception.InvalidOtpException;
 import Product_Management.Springboot_1.Exception.ResultNotFoundException;
 import Product_Management.Springboot_1.Repository.ProductRepository;
 import Product_Management.Springboot_1.Repository.UserRepository;
@@ -42,6 +44,8 @@ public class UserServiceimpl implements UserService {
 
     // Email pattern for basic validation
     private static final String EMAIL_PATTERN = "^[A-Za-z0-9+_.-]+@(.+)$";
+
+    private final Map<String, String> otpStorage = new HashMap<>();
 
     @Override
     public UserDto createUser(UserDto userDto) {
@@ -137,7 +141,7 @@ public class UserServiceimpl implements UserService {
         return UserMapper.mapToUserDto(user);
     }
 
-    public String register(RegisterDto registerDto) {
+    public void register(RegisterDto registerDto) {
         // Check if user already exists
         if (userRepository.findByEmail(registerDto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("User already exists with this email: " + registerDto.getEmail());
@@ -163,22 +167,19 @@ public class UserServiceimpl implements UserService {
         user.setOtpGeneratedTime(LocalDateTime.now());
         userRepository.save(user);
 
-        return "User registration successful";
     }
 
-    public String verifyAccount(String email, String otp) {
+    public void verifyAccount(String email, String otp) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with this email: " + email));
 
         if (user.getOtp().equals(otp) && Duration.between(user.getOtpGeneratedTime(), LocalDateTime.now()).getSeconds() < (1 * 60)) {
             user.setActive(true);
             userRepository.save(user);
-            return "OTP verified, you can log in";
         }
-        return "Please regenerate OTP and try again";
     }
 
-    public String regenerateOtp(String email) {
+    public void regenerateOtp(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with this email: " + email));
 
@@ -193,40 +194,52 @@ public class UserServiceimpl implements UserService {
         user.setOtpGeneratedTime(LocalDateTime.now());
         userRepository.save(user);
 
-        return "Email sent, please verify your account within 1 minute";
     }
 
-    public String login(LoginDto loginDto) {
+    @Override
+    public void login(LoginDto loginDto) {
         User user = userRepository.findByEmail(loginDto.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found with this email: " + loginDto.getEmail()));
+                .orElseThrow(() -> new EmailNotFoundException("User not found with this email: " + loginDto.getEmail()));
 
+        // Check if the password matches
         if (!loginDto.getPassword().equals(user.getPassword())) {
-            return "Password is incorrect";
-        } else if (!user.isActive()) {
-            return "Your account is not verified";
+            throw new ResultNotFoundException("Password does not match!!");
         }
-        return "Login successful";
+
     }
+
 
     @Override
     public String forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with this email: " + email));
+                .orElseThrow(() -> new EmailNotFoundException("User not found with this email: " + email));
+
+        String otp = otpUtil.generateOtp();
+        otpStorage.put(email, otp);
+
         try {
-            emailUtil.sendSetPasswordEmail(email);
+            emailUtil.sendOtpEmail(email, otp);
         } catch (MessagingException e) {
-            throw new RuntimeException("Unable to send password email, please try again");
+            throw new RuntimeException("Unable to send OTP email, please try again.");
         }
 
-        return "Please check your email to set a new password for your account";
+        return "OTP has been sent to your email. Please use it to reset your password.";
     }
 
+
     @Override
-    public String setPassword(String email, String newPassword) {
+    public void verifyOtpAndSetPassword(String email, String otp, String newPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with this email: " + email));
+                .orElseThrow(() -> new EmailNotFoundException("User not found with this email: " + email));
+
+        String storedOtp = otpStorage.get(email);
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            throw new InvalidOtpException("Invalid or expired OTP.");
+        }
+
+
         user.setPassword(newPassword);
         userRepository.save(user);
-        return "New password set successfully, log in with the new password!";
+        otpStorage.remove(email);
     }
 }
